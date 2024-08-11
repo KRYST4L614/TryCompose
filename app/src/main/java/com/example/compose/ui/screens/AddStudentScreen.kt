@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
@@ -21,7 +23,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -29,11 +30,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.compose.R
 import com.example.compose.navigation.ItemsList
+import com.example.compose.presentation.AddStudentState
 import com.example.compose.presentation.AddStudentState.Content
 import com.example.compose.presentation.AddStudentState.Loading
 import com.example.compose.presentation.AddStudentViewModel
@@ -44,26 +48,45 @@ fun AddStudentScreen(
     viewModel: AddStudentViewModel = viewModel(),
     navController: NavController
 ) {
+    AddStudentScreen(
+        modifier = modifier,
+        state = viewModel.state.collectAsStateWithLifecycle().value,
+        backToList = navController::navigate,
+        checkName = viewModel::checkName,
+        checkSecondName = viewModel::checkSecondName,
+        handleButtonClick = viewModel::handleButtonClick
+    )
+}
+
+@Composable
+fun AddStudentScreen(
+    modifier: Modifier,
+    state: AddStudentState,
+    backToList: (ItemsList) -> Unit,
+    checkName: (String) -> Unit,
+    checkSecondName: (String) -> Unit,
+    handleButtonClick: (String, String, String, Boolean) -> Unit
+) {
 
     var name by remember { mutableStateOf("") }
     var secondName by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var hasPortfolio by remember { mutableStateOf(false) }
 
-    val state = viewModel.state.observeAsState()
+    val scrollState = rememberScrollState()
 
 
     Column(
-        modifier = modifier,
+        modifier = modifier.verticalScroll(scrollState),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Center,
     ) {
         val animateFadeIn by animateFloatAsState(
-            targetValue = if (state.value is Loading) 1F else 0F,
+            targetValue = if (state is Loading) 1F else 0F,
             animationSpec = tween(durationMillis = 1000),
             label = "animateFadeIn"
         ) { _ ->
-            navController.navigate(ItemsList)
+            backToList(ItemsList)
         }
         CircularProgressIndicator(Modifier.alpha(animateFadeIn))
 
@@ -76,27 +99,23 @@ fun AddStudentScreen(
         TextField(
             modifier = internalModifier,
             text = name,
-            isError = if (state.value is Content)
-                (state.value as Content).nameError
-            else false,
+            isError = if (state is Content) state.nameError else false,
             supportingText = { Text(stringResource(id = R.string.name_error)) },
             label = { Text(text = stringResource(id = R.string.name)) }
         ) {
             name = it
-            viewModel.checkName(name)
+            checkName(name)
         }
 
         TextField(
             modifier = internalModifier,
             text = secondName,
-            isError = if (state.value is Content)
-                (state.value as Content).secondNameError
-            else false,
+            isError = if (state is Content) state.secondNameError else false,
             supportingText = { Text(stringResource(id = R.string.name_error)) },
             label = { Text(text = stringResource(id = R.string.second_name)) }
         ) {
             secondName = it
-            viewModel.checkSecondName(secondName)
+            checkSecondName(secondName)
         }
 
         TextField(
@@ -113,9 +132,9 @@ fun AddStudentScreen(
 
         SaveButton(
             modifier = internalModifier,
-            enabled = state.value !is Loading
+            enabled = state !is Loading
         ) {
-            viewModel.handleButtonClick(name, secondName, description, hasPortfolio)
+            handleButtonClick(name, secondName, description, hasPortfolio)
         }
     }
 }
@@ -143,7 +162,7 @@ fun TextField(
                     "error",
                     tint = MaterialTheme.colorScheme.error
                 )
-        }
+        },
     )
 }
 
@@ -180,4 +199,20 @@ fun SaveButton(modifier: Modifier = Modifier, enabled: Boolean, onClick: () -> U
     ) {
         Text(text = stringResource(id = R.string.save))
     }
+}
+
+@Preview(
+    showSystemUi = true,
+    showBackground = true,
+)
+@Composable
+fun AddStudentScreenPreview() {
+    AddStudentScreen(
+        modifier = Modifier,
+        state = Content(false, false),
+        backToList = { _ -> },
+        checkName = { _ -> },
+        checkSecondName = { _ -> },
+        handleButtonClick = { _, _, _, _ -> }
+    )
 }
