@@ -1,24 +1,24 @@
 package com.example.compose.presentation
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.compose.domain.entities.ListItem.StudentItem
 import com.example.compose.domain.usecases.AddStudentUseCase
 import com.example.compose.presentation.AddStudentState.Content
 import com.example.compose.presentation.AddStudentState.Loading
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 
 class AddStudentViewModel @Inject constructor(
     private val addItemsUseCase: AddStudentUseCase
 ) : ViewModel() {
-    private val _state = MutableLiveData<AddStudentState>(
+    private val _state = MutableStateFlow<AddStudentState>(
         Content(
             nameError = false,
             secondNameError = false
         )
     )
-    val state: LiveData<AddStudentState>
+    val state: StateFlow<AddStudentState>
         get() = _state
 
     fun checkName(name: String) {
